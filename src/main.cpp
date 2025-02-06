@@ -467,7 +467,7 @@ void generate_code(ASTNode* node) {
             std::cout << "\tglobal _start\n";
             std::cout << "_start:\n";
             std::cout << "\tcall main\n";
-            std::cout << "\tmov rdx, rax\n";
+            std::cout << "\tmov rdi, rax\n";
             std::cout << "\tmov rax, 60\n";
             std::cout << "\tsyscall\n";
 
@@ -475,6 +475,7 @@ void generate_code(ASTNode* node) {
                 generate_code(node->globals[i]);
             }
             break;
+
         case NODE_NUMBER:  // tbh I don't know how to handle this
             std::cout << "\tmov rax, " << node->number << "\n";
             break;
@@ -569,7 +570,7 @@ int main(int argc, char* argv[]) {
     //     print_token(next_symbol.token);
     // } while (next_symbol.token != TOK_EOF);
 
-    std::cerr << "--- Parser ---\n";
+    // std::cerr << "--- Parser ---\n";
     progress_symbol();
     ASTNode* ast_head = parse_start();
     generate_code(ast_head);

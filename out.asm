@@ -2,7 +2,7 @@ section .text
 	global _start
 _start:
 	call main
-	mov rdx, rax
+	mov rdi, rax
 	mov rax, 60
 	syscall
 main:
@@ -12,26 +12,28 @@ main:
 	push rax
 	mov rax, 6
 	pop rbx
-	imul rax, rbx
+	sub rax ,rbx
 	push rax
 	mov rax, 5
-	pop rbx
-	add rax, rbx
 	push rax
 	mov rax, 4
-	push rax
-	mov rax, 3
 	pop rbx
 	imul rax, rbx
 	pop rbx
 	cqo
 	idiv rbx
+	mov rax, rdx
+	push rax
+	mov rax, 3
 	push rax
 	mov rax, 2
 	push rax
 	mov rax, 1
 	pop rbx
-	add rax, rbx
+	cqo
+	idiv rbx
+	pop rbx
+	imul rax, rbx
 	pop rbx
 	add rax, rbx
 	pop rbp

@@ -1,8 +1,0 @@
-[
-{
-  "directory": "/home/shawn-andrew/Documents/Programming/Projects/SmallSideProjects/LearningAboutCompilers/LLVMCompilerArchitectureTutorial/CompilerTry2/build",
-  "command": "/usr/bin/g++    -Wall -Wshadow -g -g -o CMakeFiles/my_compiler.dir/src/main.cpp.o -c /home/shawn-andrew/Documents/Programming/Projects/SmallSideProjects/LearningAboutCompilers/LLVMCompilerArchitectureTutorial/CompilerTry2/src/main.cpp",
-  "file": "/home/shawn-andrew/Documents/Programming/Projects/SmallSideProjects/LearningAboutCompilers/LLVMCompilerArchitectureTutorial/CompilerTry2/src/main.cpp",
-  "output": "CMakeFiles/my_compiler.dir/src/main.cpp.o"
-}
-]
