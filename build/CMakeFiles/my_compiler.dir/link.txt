@@ -1,0 +1,1 @@
+/usr/bin/g++  -Wall -Wshadow -g -g -Wl,--dependency-file=CMakeFiles/my_compiler.dir/link.d CMakeFiles/my_compiler.dir/src/main.cpp.o -o my_compiler
