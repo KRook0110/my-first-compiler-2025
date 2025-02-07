@@ -8,6 +8,7 @@ currently it can only do simple arithmetic, create functions(yes, you can't even
 run `./runscript.sh your_path_to_code`.
 
 ## Todo :
+- [ ] Declerations of functions and variables.
 - [ ] Create a way to do system calls from code.
 - [ ] Seperate main.cpp to multiple files and header files.
 
