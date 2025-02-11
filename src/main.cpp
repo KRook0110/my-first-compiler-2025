@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <cstdlib>
 #include <iostream>
 
 #define MAX_IDENT_CHAR 100
@@ -29,11 +30,69 @@ enum Token {
     TOK_LPAREN = '(',
     TOK_RPAREN = ')',
     TOK_SEMICOLON = ';',
+    TOK_ASSIGN = '=',
 
     // misc
     TOK_IDENT = -5,
     TOK_START = -6,
 };
+
+void print_token(Token tok) {
+    switch (tok) {
+        case NO_TOKEN:
+            std::cerr << "NO_TOKEN\n";
+            break;
+        case TOK_EOF:
+            std::cerr << "TOK_EOF\n";
+            break;
+        case TOK_RETURN:
+            std::cerr << "TOK_RETURN\n";
+            break;
+        case TOK_INTEGER:
+            std::cerr << "TOK_INTEGER\n";
+            break;
+        case TOK_NUMBER:
+            std::cerr << "TOK_NUMBER\n";
+            break;
+        case TOK_ADD:
+            std::cerr << "TOK_ADD\n";
+            break;
+        case TOK_SUB:
+            std::cerr << "TOK_SUB\n";
+            break;
+        case TOK_MULT:
+            std::cerr << "TOK_MULT\n";
+            break;
+        case TOK_DIV:
+            std::cerr << "TOK_DIV\n";
+            break;
+        case TOK_MOD:
+            std::cerr << "TOK_MOD\n";
+            break;
+        case TOK_LCBRACKET:
+            std::cerr << "TOK_LCBRACKET\n";
+            break;
+        case TOK_RCBRACKET:
+            std::cerr << "TOK_RCBRACKET\n";
+            break;
+        case TOK_LPAREN:
+            std::cerr << "TOK_LPAREN\n";
+            break;
+        case TOK_RPAREN:
+            std::cerr << "TOK_RPAREN\n";
+            break;
+        case TOK_IDENT:
+            std::cerr << "TOK_IDENT\n";
+            break;
+        case TOK_SEMICOLON:
+            std::cerr << "TOK_SEMICOLON\n";
+            break;
+        default:
+            std::cerr << "IDK What is this\n";
+            break;
+    }
+}
+
 
 struct Symbol {
     Token token;
@@ -106,6 +165,23 @@ void progress_symbol() {
     return;
 }
 
+bool accept(Token tok) {
+    if(tok == next_symbol.token) {
+        return true;
+    }
+    return false;
+}
+bool expect(Token tok) {
+    if(accept(tok)) {
+        return true;
+    }
+    std::cerr << "expected ";
+    print_token(tok);
+    std::cerr << "\n";
+    return false;
+}
+
+
 // parser
 enum NodeType {
     NODE_START,
@@ -115,6 +191,7 @@ enum NodeType {
     NODE_FUNCTION,
     NODE_BLOCK,
     NODE_NEG,
+    NODE_VARIABLE,
 };
 
 struct ASTNode {
@@ -134,8 +211,16 @@ struct ASTNode {
         };
         // NODE_FUNCTION
         struct {
-            char* name;
-            ASTNode* body;
+            char* function_name;
+            ASTNode* function_body;
+        };
+        // NODE_VARIABLE
+        struct {
+            char* variable_name;
+            Token variable_datatype;
+            ASTNode*
+                variable_assignment;  // for assignment, expects an expresion,
+                                      // left NULL if there is not assignment;
         };
         // NODE_BLOCK
         struct {
@@ -237,6 +322,7 @@ ASTNode* parse_statement() {
         if (next_symbol.token != TOK_SEMICOLON) {
             std::cerr << "expected ';'\n";
         }
+
         progress_symbol();
         return statement_node;
     }
@@ -268,6 +354,67 @@ ASTNode* parse_block() {
 
 void print_token(Token tok);
 
+ASTNode* parse_declaration() {
+    Token datatype;
+    switch (next_symbol.token) {
+        case TOK_INTEGER:  // add more datatypes below here
+            datatype = next_symbol.token;
+            break;
+        default:
+            std::cerr << "expected datatype\n";
+            return NULL;
+    }
+    progress_symbol();
+
+    if(!expect(TOK_IDENT)) return NULL;
+    std::string name = next_symbol.idname;
+    progress_symbol();
+
+    // variable
+    if (next_symbol.token == TOK_SEMICOLON || next_symbol.token == TOK_ASSIGN) {
+        bool is_assigned = next_symbol.token == TOK_ASSIGN;
+        progress_symbol();
+
+        ASTNode* variable_node = (ASTNode*)malloc(sizeof(ASTNode));
+        variable_node->type = NODE_VARIABLE;
+        strcpy(variable_node->variable_name, name.c_str());
+        variable_node->variable_datatype = datatype;
+        if (is_assigned) {
+            variable_node->variable_assignment = parse_expression();
+            if(next_symbol.token != TOK_SEMICOLON) {
+                std::cerr << "Expected ';'\n";
+                return NULL;
+            }
+            progress_symbol();
+            variable_node->variable_assignment = parse_expression();
+        } else {
+            variable_node->variable_assignment = NULL;
+        }
+
+        return variable_node;
+    }
+    //function
+    if (accept(TOK_LPAREN)) {      // then this is a function call;
+
+        progress_symbol();
+        if(!expect(TOK_RPAREN)) return NULL;
+        progress_symbol();
+        if(!expect(TOK_LCBRACKET)) return NULL;
+        progress_symbol();
+
+        ASTNode* function_node = (ASTNode*)malloc(sizeof(ASTNode*));
+        function_node->type = NODE_FUNCTION;
+        strcpy(function_node->function_name, name.c_str());
+        function_node->function_body = parse_block();
+
+        if(!expect(TOK_RCBRACKET)) return NULL;
+        progress_symbol();
+    }
+
+    std::cerr << "expected '(', '=', or ';'\n";
+    return NULL;
+}
+
 ASTNode* parse_function() {
     ASTNode* function_node = (ASTNode*)malloc(sizeof(ASTNode));
     function_node->type = NODE_FUNCTION;
@@ -282,8 +429,8 @@ ASTNode* parse_function() {
         std::cerr << "expected Identifier Token\n";
         return NULL;
     }
-    function_node->name = (char*)malloc(sizeof(char) * MAX_IDENT_CHAR);
-    strcpy(function_node->name, next_symbol.idname.c_str());
+    function_node->function_name = (char*)malloc(sizeof(char) * MAX_IDENT_CHAR);
+    strcpy(function_node->function_name, next_symbol.idname.c_str());
     progress_symbol();
 
     if (next_symbol.token != TOK_LPAREN) {  // (
@@ -305,9 +452,9 @@ ASTNode* parse_function() {
     progress_symbol();
 
     // body
-    function_node->body = parse_block();
+    function_node->function_body = parse_block();
 
-    if (function_node->body == NULL) {
+    if (function_node->function_body == NULL) {
         std::cerr << "function is empty\n";
     }
 
@@ -330,7 +477,7 @@ ASTNode* parse_start() {
         node_start->globals_count++;
         node_start->globals = (ASTNode**)realloc(
             node_start->globals, sizeof(ASTNode*) * node_start->globals_count);
-        node_start->globals[node_start->globals_count - 1] = parse_function();
+        node_start->globals[node_start->globals_count - 1] = parse_declaration();
     };
 
     if (next_symbol.token != TOK_EOF) {
@@ -341,61 +488,6 @@ ASTNode* parse_start() {
 
 // end parsing
 
-void print_token(Token tok) {
-    switch (tok) {
-        case NO_TOKEN:
-            std::cerr << "NO_TOKEN\n";
-            break;
-        case TOK_EOF:
-            std::cerr << "TOK_EOF\n";
-            break;
-        case TOK_RETURN:
-            std::cerr << "TOK_RETURN\n";
-            break;
-        case TOK_INTEGER:
-            std::cerr << "TOK_INTEGER\n";
-            break;
-        case TOK_NUMBER:
-            std::cerr << "TOK_NUMBER\n";
-            break;
-        case TOK_ADD:
-            std::cerr << "TOK_ADD\n";
-            break;
-        case TOK_SUB:
-            std::cerr << "TOK_SUB\n";
-            break;
-        case TOK_MULT:
-            std::cerr << "TOK_MULT\n";
-            break;
-        case TOK_DIV:
-            std::cerr << "TOK_DIV\n";
-            break;
-        case TOK_MOD:
-            std::cerr << "TOK_MOD\n";
-            break;
-        case TOK_LCBRACKET:
-            std::cerr << "TOK_LCBRACKET\n";
-            break;
-        case TOK_RCBRACKET:
-            std::cerr << "TOK_RCBRACKET\n";
-            break;
-        case TOK_LPAREN:
-            std::cerr << "TOK_LPAREN\n";
-            break;
-        case TOK_RPAREN:
-            std::cerr << "TOK_RPAREN\n";
-            break;
-        case TOK_IDENT:
-            std::cerr << "TOK_IDENT\n";
-            break;
-        case TOK_SEMICOLON:
-            std::cerr << "TOK_SEMICOLON\n";
-            break;
-        default:
-            std::cerr << "IDK What is this\n";
-            break;
-    }
-}
 
 std::string tostring_node(NodeType type) {
     switch (type) {
@@ -413,7 +505,10 @@ std::string tostring_node(NodeType type) {
             return "NODE_BLOCK";
         case NODE_NEG:
             return "NODE_NEG";
-    }
+        case NODE_VARIABLE:
+            return "NODE_VARIABLE";
+          break;
+        }
     return "idk";
 }
 
@@ -443,8 +538,8 @@ void print_AST(ASTNode* node, int spaces) {
             break;
         case NODE_FUNCTION:
             for (int i = 0; i < spaces; i++) std::cerr << ' ';
-            std::cerr << "name : " << node->name << '\n';
-            print_AST(node->body, next_spaces);
+            std::cerr << "function name : " << node->function_name << '\n';
+            print_AST(node->function_body, next_spaces);
             break;
         case NODE_BLOCK:
             for (int i = 0; i < node->statements_count; i++) {
@@ -453,6 +548,12 @@ void print_AST(ASTNode* node, int spaces) {
             break;
         case NODE_NEG:
             print_AST(node->expression, next_spaces);
+            break;
+        case NODE_VARIABLE:
+            for (int i = 0; i < spaces; i++) std::cerr << ' ';
+            std::cerr << "variable name : " << node->variable_name << '\n';
+            print_AST(node->variable_assignment, next_spaces);
+            break;
     }
     for (int i = 0; i < spaces; i++) std::cerr << ' ';
     std::cerr << tostring_node(node->type) << " end >" << '\n';
@@ -519,10 +620,10 @@ void generate_code(ASTNode* node) {
             std::cout << "\tret" << '\n';
             break;
         case NODE_FUNCTION:
-            std::cout << node->name << ":\n";
+            std::cout << node->function_name << ":\n";
             std::cout << "\tpush rbp\n";
             std::cout << "\tmov rbp, rsp\n";
-            generate_code(node->body);
+            generate_code(node->function_body);
             std::cout << "\tpop rbp\n";
             std::cout << "\tret\n";
             break;
@@ -536,7 +637,9 @@ void generate_code(ASTNode* node) {
             generate_code(node->expression);
             std::cout << "\tneg rax\n";
             break;
-    }
+        case NODE_VARIABLE:
+          break;
+        }
 }
 
 int main(int argc, char* argv[]) {
