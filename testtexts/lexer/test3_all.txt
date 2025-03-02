@@ -1,0 +1,6 @@
+int main() {
+    int x = 10 + 20;
+    int y = 1/ 5;
+    int z = 1 * 3 / 5;
+    return 20;
+}
